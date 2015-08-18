@@ -82,7 +82,7 @@ class Question:
 					randRow += 1	
 		self.gammaTable = array(self.gammaTable)
 	
-	def maxLogLikelihood(self):
+	def maxLogLikelihood():
 		"""
 		This function calculates the maximum logLikelihood and the corresponding optimal
 		Dirichelet parametrization.

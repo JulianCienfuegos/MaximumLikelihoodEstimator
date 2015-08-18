@@ -19,14 +19,16 @@ The resultant parametrizations are going to be in the csv file you specified.
 
 from question import *
 from Tkinter import *
+# --------------------------------------------------------------------------
+# GUI stuff
+# --------------------------------------------------------------------------
 
-#GUI stuff
 master = Tk()
 Label(master, text="Input file").grid(row=0)
 Label(master, text="Output file").grid(row=1)
 e1 = Entry(master)
 e2 = Entry(master)
-e1.insert(10,"ElicitedParameters.csv")
+e1.insert(10,"X.csv")
 e2.insert(10,"BestParameterFit.csv")
 e1.grid(row=0, column=1)
 e2.grid(row=1, column=1)
@@ -39,27 +41,41 @@ master.bind('<Return>', getFiles)
 Button(master, text='Calculate', command=getFiles).grid(row=3, column=0, sticky=W, pady=4)
 mainloop( )
 
-# Get the random number table.
-with open('randTable.csv', 'rb') as data:
-	rows = csv.reader(data)
-	randTable = [[float(item) for number, item in enumerate(row)] for row in rows]	
+# -------------------------------------------------------------------------
+# Useful function
+# -------------------------------------------------------------------------
 
-# Get the questions
+def log_float(L):
+		return [log(float(l)) for l in L]
+
+# --------------------------------------------------------------------------
+# Input the file of Xs
+# --------------------------------------------------------------------------
 with open(InFile, 'rb') as data:
 		rows = csv.reader(data)
-		Q = [r[0] for r in rows if r[0] != '']
+		X = [log_float(r) for r in rows]
+		X = array(X)
+
+# ---------------------------------------------------------------------------
+# MaxLogLikelihood Calculation
+# ---------------------------------------------------------------------------
+
+def maxLogLikelihood(ln_X_matrix):
+	n = len(ln_X_matrix) # num rows in X
+	k = len(ln_X_matrix[0]) # num cols in X
+	bds = [(0.000001, 100) for i in range(k)]
+	def optimFunc(alpha_guess):
+		term_1 =  n*gammaln(sum(alpha_guess))
+		term_2 = -n*sum(gammaln(alpha_guess))
+		vec = alpha_guess - ones(k)
+		b = dot(ln_X_matrix, vec)
+		term_3 = sum(b)
+		fun = -(term_1 + term_2 + term_3)
+		return fun
+	# if you want the max(f(x)), return the -min(-f(x))
+	return -1.0*minimize(optimFunc, ones(k), bounds=bds).fun, list(minimize(optimFunc, ones(k), bounds=bds).x)
+
 
 # Calculate the parametrizations. 
-output = []
-for q in Q:
-	a = Question(q, InFile, randTable)
-	fun, params = a.maxLogLikelihood()
-	params.insert(0, fun)
-	output.append(params)
-	
-# Write the parameterizations to a file. 
-# Each line in the file gives : the maxloglikelihood, followed by the n parameters giving that extreme value subject to some optimizing function.
-with open(OutFile, 'wb') as f:
-	writer = csv.writer(f)
-	for line in output:	
-		writer.writerow(line)
+MLE = maxLogLikelihood(X)
+print MLE
